@@ -1,0 +1,227 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  password      String?
+  image         String?
+  role          String    @default("user")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  books         Book[]
+  teachings     Teaching[]
+  donations     Donation[]
+  bookmarks     Bookmark[]
+}
+
+model Account {
+  id                 String   @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Book {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  coverImage  String?
+  category    String?
+  status      String    @default("draft")
+  authorId    String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  author      User      @relation(fields: [authorId], references: [id])
+  chapters    Chapter[]
+}
+
+model Chapter {
+  id          String   @id @default(cuid())
+  title       String
+  content     String   @db.Text
+  order       Int
+  status      String   @default("draft")
+  bookId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  book        Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model Teaching {
+  id           String   @id @default(cuid())
+  title        String
+  description  String?  @db.Text
+  content      String?  @db.Text
+  type         String   // video, audio, text
+  mediaUrl     String?
+  thumbnailUrl String?
+  duration     Int?     // in seconds
+  category     String?
+  tags         String?
+  status       String   @default("draft")
+  authorId     String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  author       User     @relation(fields: [authorId], references: [id])
+  bookmarks    Bookmark[]
+}
+
+model Audiobook {
+  id          String          @id @default(cuid())
+  title       String
+  description String?         @db.Text
+  coverImage  String?
+  narrator    String?
+  duration    Int?            // in seconds
+  category    String?
+  status      String          @default("draft")
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  chapters    AudioChapter[]
+}
+
+model AudioChapter {
+  id          String    @id @default(cuid())
+  title       String
+  description String?   @db.Text
+  audioUrl    String
+  duration    Int?      // in seconds
+  order       Int
+  audiobookId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  audiobook   Audiobook @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
+}
+
+model Story {
+  id          String   @id @default(cuid())
+  title       String
+  summary     String?  @db.Text
+  content     String?  @db.Text
+  coverImage  String?
+  category    String?
+  tags        String?
+  source      String?
+  status      String   @default("draft")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ReligiousPlace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  image       String?
+  state       String?
+  type        String?  // city, pilgrimage site, etc.
+  coordinates String?  // JSON string with lat/lng
+  address     String?
+  phone       String?
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  temples     Temple[]
+}
+
+model Temple {
+  id              String        @id @default(cuid())
+  name            String
+  description     String?       @db.Text
+  images          String?       // JSON array of image URLs
+  deity           String?
+  architecture    String?
+  historicalInfo  String?       @db.Text
+  visitingHours   String?
+  coordinates     String?       // JSON string with lat/lng
+  address         String?
+  religiousPlaceId String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  religiousPlace  ReligiousPlace @relation(fields: [religiousPlaceId], references: [id], onDelete: Cascade)
+}
+
+model Donation {
+  id            String   @id @default(cuid())
+  amount        Float
+  cause         String?
+  isRecurring   Boolean  @default(false)
+  paymentMethod String?
+  transactionId String?
+  status        String   @default("pending")
+  userId        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user          User     @relation(fields: [userId], references: [id])
+}
+
+model Bookmark {
+  id          String   @id @default(cuid())
+  userId      String
+  teachingId  String
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  teaching    Teaching @relation(fields: [teachingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, teachingId])
+}
+
+model SiteSettings {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  value         String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
