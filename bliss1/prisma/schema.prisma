@@ -1,0 +1,170 @@
+generator client {
+  provider = "prisma-client-js"
+  // Add this for better compatibility with Neon's serverless environment
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Add these extensions for better performance with Neon
+  extensions = [pgcrypto]
+}
+
+// User model updated for Clerk integration
+model User {
+  id            String    @id
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  role          String    @default("user") // "user", "admin"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relationships
+  donations     Donation[]
+  // Remove password field since Clerk handles authentication
+}
+
+model Book {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  author      String?
+  coverImage  String?
+  price       Float?
+  isFree      Boolean   @default(true)
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relationships
+  chapters    Chapter[]
+}
+
+model Chapter {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?  @db.Text
+  order     Int
+  bookId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relationships
+  book      Book     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+}
+
+model Teaching {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?  @db.Text
+  author      String?
+  coverImage  String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model ReligiousPlace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?  @db.Text
+  address     String?
+  city        String?
+  state       String?
+  country     String?
+  latitude    Float?
+  longitude   Float?
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  temples     Temple[]
+}
+
+model Temple {
+  id              String         @id @default(cuid())
+  name            String
+  description     String?        @db.Text
+  deity           String?
+  history         String?        @db.Text
+  architecture    String?        @db.Text
+  visitingHours   String?
+  address         String?
+  latitude        Float?
+  longitude       Float?
+  image           String?
+  religiousPlaceId String
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  
+  // Relationships
+  religiousPlace  ReligiousPlace @relation(fields: [religiousPlaceId], references: [id], onDelete: Cascade)
+}
+
+model Audiobook {
+  id          String            @id @default(cuid())
+  title       String
+  description String?           @db.Text
+  author      String?
+  narrator    String?
+  coverImage  String?
+  duration    Int?              // Duration in seconds
+  price       Float?
+  isFree      Boolean           @default(true)
+  isPublished Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  
+  // Relationships
+  chapters    AudiobookChapter[]
+}
+
+model AudiobookChapter {
+  id          String    @id @default(cuid())
+  title       String
+  audioUrl    String?
+  duration    Int?      // Duration in seconds
+  order       Int
+  audiobookId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relationships
+  audiobook   Audiobook @relation(fields: [audiobookId], references: [id], onDelete: Cascade)
+}
+
+model Story {
+  id          String   @id @default(cuid())
+  title       String
+  content     String?  @db.Text
+  author      String?
+  coverImage  String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Donation {
+  id            String   @id @default(cuid())
+  amount        Float
+  currency      String   @default("INR")
+  status        String   // "pending", "completed", "failed"
+  paymentId     String?  // Payment gateway ID
+  orderId       String?  // Order ID from payment gateway
+  userId        String?
+  donorName     String?
+  donorEmail    String?
+  donorPhone    String?
+  message       String?
+  isAnonymous   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relationships
+  user          User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
